@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# rm -f ${HOME}/master/doc/thesis/images/*
+cp figures/* ${HOME}/master/doc/thesis/images/
+cp summary-peakmem.tex ${HOME}/master/doc/thesis/sections/results
+cp summary-runtime.tex ${HOME}/master/doc/thesis/sections/results

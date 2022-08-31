@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+source util
+experiment=`basename "$0"`
+echo $experiment
+RESULTS_FILE=$RESULTS_DIR/$experiment.csv
+
+# comment out to append i.s.o. overwriting
+# echo "dataset,modulo,variant,runtime,peakmem" > $RESULTS_FILE
+
+for dataset in $DATASETS ; do
+    for modulo in $DIFF_MODULOS ; do
+        for variant in dynamic static ; do
+            if grep -q "$dataset,$modulo,$variant" $RESULTS_FILE; then
+                continue
+            fi
+            for (( c=1; c<=$REPETITIONS; c++ )) ; do
+                sh -c "sync; echo 3 > /writable_proc/sys/vm/drop_caches"
+                rm -rf /tmp/hdt 
+                mkdir -p /tmp/hdt
+                if [ $variant == "dynamic" ]; then 
+                    # Dynamic: add the NT to the HDT. 
+                    result=$(run $HDT_DIR/modifyHdt -A $DATA_DIR/$dataset.add.$modulo.nt -R $DATA_DIR/$dataset.remove.$modulo.nt $DATA_DIR/$dataset.primary.$modulo.$variant.hdt /tmp/hdt/hdt)
+                    echo "$dataset,$modulo,$variant,$result" >> $RESULTS_FILE 
+                else 
+                    # Static: first generate a HDT from the data to add. 
+                    result=$(run $HDT_DIR/rdf2hdt $DATA_DIR/$dataset.primary.$modulo.nt /tmp/hdt/hdt)
+                    echo "$dataset,$modulo,$variant,$result" >> $RESULTS_FILE
+                fi
+            done
+            # done
+        done
+    done
+done

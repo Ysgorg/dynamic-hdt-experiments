@@ -1,0 +1,8 @@
+{
+    "dictionary": {
+        "type": "http://purl.org/HDT/hdt#dictionaryFourTrie"
+    },
+    "triples": {
+        "type": "http://purl.org/HDT/hdt#triplesBitmap"
+    }
+}

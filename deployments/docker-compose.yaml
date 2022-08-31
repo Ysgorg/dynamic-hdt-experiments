@@ -1,0 +1,25 @@
+version: '3.5'
+services:
+  thesis-experiment:
+    restart: unless-stopped
+    image: registry.triply.cc/eirik/thesis-experiments/dynamic-hdt-experiment:latest
+    environment:
+
+      - DATASETS=dbpedia kadaster energie
+      - HDT_DIR=/hdt/cpp/hdt/Release/bin
+
+      - RESULTS_DIR
+      - LOGS_DIR
+      - CONFIGS_DIR
+      - DATA_DIR
+      - DIFF_MODULOS
+      - REPETITIONS
+
+    volumes:
+      - dynamic-benchmark-data:/root/dynamic-benchmark/data
+      - dynamic-benchmark-results:/root/dynamic-benchmark/results
+      - /proc:/writable_proc # for clearing cache when needed
+
+volumes:
+  dynamic-benchmark-data:
+  dynamic-benchmark-results:

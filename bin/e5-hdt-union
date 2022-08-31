@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+source util
+experiment=`basename "$0"`
+echo $experiment
+RESULTS_FILE=$RESULTS_DIR/$experiment.csv
+
+# comment out to append i.s.o. overwriting
+# echo "primary,secondary,variant,runtime,peakmem" > $RESULTS_FILE
+
+
+function merge(){
+    primary=$1
+    secondary=$2
+    for variant in dynamic static ; do 
+        if grep -q "$primary,$secondary,$variant," $RESULTS_FILE; then
+            continue
+        fi
+        for (( c=1; c<=$REPETITIONS; c++ )) ; do
+            sh -c "sync; echo 3 > /writable_proc/sys/vm/drop_caches"
+            rm -rf /tmp/hdt
+            mkdir /tmp/hdt
+            if [ $variant == "dynamic" ]; then
+                result=$(run $HDT_DIR/hdtAdd $DATA_DIR/$primary.$variant.hdt $DATA_DIR/$secondary.$variant.hdt /tmp/hdt/hdt)
+            else
+                result=$(run $HDT_DIR/hdtCat $DATA_DIR/$primary.$variant.hdt $DATA_DIR/$secondary.$variant.hdt /tmp/hdt/hdt)
+            fi
+            echo "$primary,$secondary,$variant,$result" >> $RESULTS_FILE
+        done
+    done
+    # done
+}
+
+merge dbpedia kadaster
+merge dbpedia energie
+merge kadaster energie

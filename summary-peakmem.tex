@@ -1,0 +1,26 @@
+
+\begin{table}[!htbp]
+\begin{center}
+\caption{Peak memory usage (RSS), dynamic/static}
+\begin{tabular}{ c | c | c | c}
+    Experiment & DBpedia & Kadaster & RVO \\
+    \hline
+    RDF-to-HDT & 0.89 & 0.66 & 1.05 \\
+    HDT-to-RDF & 3.61 & 1.72 & 5.73 \\
+
+    \iftoggle{submission}{%
+    }{
+    Triple-search & 3.61 & 1.72 & 5.47 \\
+    Term-search & 1.43 & 2.93 & 1.05 \\
+
+    }
+    HDT subtraction & 2.57 & 0.51 & 0.43 \\
+    RDF updates & 0.5/0.42/0.41 & 0.46/0.37/0.36 & 0.68/0.51/0.5 \\
+    \hline 
+    & DB.+Ka. &DB.+RVO & Ka.+RVO \\
+    \hline
+    HDT merging & 2.84 & 3.13 & 1.81
+
+\end{tabular}
+\end{center}
+\end{table}

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+function run(){
+    >&2 echo $@
+    set +e # fails sometimes for some reason
+    /usr/bin/time -v $@ > /dev/null 2> /tmp/hdt/benchmark
+    if [ $? != 0 ]; then 
+        echo "Failed: " $@
+        set -e
+        echo ","
+    else 
+        set -e
+        runtime=$(cat /tmp/hdt/benchmark | grep "wall clock" | awk '{print $NF}')
+        maxrss=$(cat /tmp/hdt/benchmark | grep "Maximum resident set size" | awk '{print $NF}')
+        echo "$runtime,$maxrss"
+    fi
+}

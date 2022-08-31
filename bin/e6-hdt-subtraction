@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -e
+source util
+experiment=`basename "$0"`
+echo $experiment
+RESULTS_FILE=$RESULTS_DIR/$experiment.csv
+
+# comment out to append i.s.o. overwriting
+# echo "dataset,variant,stage,runtime,peakmem" > $RESULTS_FILE
+
+for variant in dynamic static ; do 
+    for dataset in $DATASETS ; do 
+        if grep -q "$dataset,$variant" $RESULTS_FILE; then
+            continue
+        fi
+        for (( c=1; c<=$REPETITIONS; c++ )) ; do
+            sh -c "sync; echo 3 > /writable_proc/sys/vm/drop_caches"
+            rm -rf /tmp/hdt 
+            mkdir /tmp/hdt
+            if [ $variant == "dynamic" ]; then
+                result=$(run $HDT_DIR/hdtSub $DATA_DIR/all.$variant.hdt $DATA_DIR/$dataset.$variant.hdt /tmp/hdt/hdt)
+                echo "$dataset,$variant,1,$result" >> $RESULTS_FILE
+            else
+                # compute diff
+                set +e 
+                /usr/bin/time -v comm $DATA_DIR/all.sorted.nt $DATA_DIR/$dataset.sorted.nt -23 > /tmp/hdt/subtracted.nt 2> /tmp/hdt/benchmark
+                if [ $? != 0 ]; then 
+                    set -e
+                    echo "Failed: " $@
+                    result=","
+                else 
+                    set -e
+                    runtime=$(cat /tmp/hdt/benchmark | grep "wall clock" | awk '{print $NF}')
+                    maxrss=$(cat /tmp/hdt/benchmark | grep "Maximum resident set size" | awk '{print $NF}')
+                    result="$runtime,$maxrss"
+                fi
+                echo "$dataset,$variant,1,$result" >> $RESULTS_FILE
+
+                # run rdf2hdt
+                result=$(run $HDT_DIR/rdf2hdt -i /tmp/hdt/subtracted.nt /tmp/hdt/hdt)
+                echo "$dataset,$variant,2,$result" >> $RESULTS_FILE
+            fi
+        done
+        # done
+    done
+done
+

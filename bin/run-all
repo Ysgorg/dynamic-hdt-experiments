@@ -1,0 +1,12 @@
+#!/bin/bash
+
+rm -rf  $LOGS_DIR $FIGURES_DIR
+mkdir -p $RESULTS_DIR $LOGS_DIR $FIGURES_DIR
+
+function run_experiment(){
+  time ./$1 > $LOGS_DIR/$i.log 2> $LOGS_DIR/$i.err
+}
+
+for i in e*-* ; do 
+    run_experiment $i
+done 

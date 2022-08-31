@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+dockerid=$(docker ps | tail -n 1 | awk '{print $1}')
+
+#dbpedia.dynamic.hdt  kadaster.dynamic.hdt  energie.dynamic.hdt  dbpedia.primary.10.dynamic.hdt  kadaster.primary.10.dynamic.hdt  energie.primary.10.dynamic.hdt  dbpedia.primary.100.dynamic.hdt kadaster.primary.100.dynamic.hdt  energie.primary.100.dynamic.hdt dbpedia.primary.1000.dynamic.hdt kadaster.primary.1000.dynamic.hdt  energie.primary.1000.dynamic.hdt dbpedia.add.10.nt kadaster.add.10.nt  energie.add.10.nt dbpedia.remove.10.nt kadaster.remove.10.nt  energie.remove.10.nt dbpedia.add.100.nt kadaster.add.100.nt  energie.add.100.nt dbpedia.remove.100.nt kadaster.remove.100.nt  energie.remove.100.nt dbpedia.add.1000.nt kadaster.add.1000.nt  energie.add.1000.nt dbpedia.remove.1000.nt kadaster.remove.1000.nt  energie.remove.1000.nt dbpedia.trie-bmt.hdt kadaster.trie-bmt.hdt energie.trie-bmt.hdt dbpedia.dictmodify.objects.10.nt kadaster.dictmodify.objects.10.nt energie.dictmodify.objects.10.nt dbpedia.dictmodify.objects.100.nt kadaster.dictmodify.objects.100.nt energie.dictmodify.objects.100.nt dbpedia.dictmodify.objects.1000.nt kadaster.dictmodify.objects.1000.nt energie.dictmodify.objects.1000.nt
+
+for filename in dbpedia.primary.10.dynamic.hdt dbpedia.add.10.nt dbpedia.remove.10.nt  ; do
+    docker cp "${dockerid}:/root/dynamic-benchmark/data/$filename" "/tmp/$filename" 
+done

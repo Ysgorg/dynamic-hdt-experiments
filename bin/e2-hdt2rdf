@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+source util
+experiment=`basename "$0"`
+echo $experiment
+RESULTS_FILE=$RESULTS_DIR/$experiment.csv
+
+# comment out to append i.s.o. overwriting
+# echo "dataset,variant,runtime,peakmem" > $RESULTS_FILE
+
+for dataset in $DATASETS ; do 
+    for variant in dynamic static ; do 
+        if grep -q "$dataset,$variant" $RESULTS_FILE; then
+            continue
+        fi
+        for (( c=1; c<=$REPETITIONS; c++ )) ; do
+            sh -c "sync; echo 3 > /writable_proc/sys/vm/drop_caches"
+            rm -rf /tmp/hdt
+            mkdir -p /tmp/hdt
+            result=$(run $HDT_DIR/hdt2rdf $DATA_DIR/$dataset.$variant.hdt /tmp/hdt/nt)
+            echo "$dataset,$variant,$result" >> $RESULTS_FILE
+        done
+    done
+done

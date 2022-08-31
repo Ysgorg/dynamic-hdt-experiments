@@ -1,0 +1,84 @@
+#!/bin/bash
+
+set -e
+
+mkdir -p $DATA_DIR
+
+
+function extract_and_sample(){
+    dataset=$1
+    gunzip $DATA_DIR/$dataset.nt.gz
+    lines=$(wc -l $DATA_DIR/$dataset.nt | awk '{print $1}')
+    subset=$(python3 -c "print(int($lines/100)*${SUBSET_PERCENT})")
+    head -$subset $DATA_DIR/$dataset.nt > $DATA_DIR/$dataset.subset.nt
+    rm $DATA_DIR/$dataset.nt
+    mv $DATA_DIR/$dataset.subset.nt $DATA_DIR/$dataset.nt
+}
+
+# download each of the source files, extract them, and create sample subsets. 
+if [ ! -f $DATA_DIR/dbpedia.nt ]; then 
+    wget "https://triplydb.com/DBpedia-association/dbpedia/download.nt" -O $DATA_DIR/dbpedia.nt.gz
+    extract_and_sample dbpedia
+fi
+if [ ! -f $DATA_DIR/kadaster.nt ]; then 
+    wget "https://data.labs.kadaster.nl/kadaster/kg/download.nt.gz?graph=https%3A%2F%2Fdata.labs.kadaster.nl%2Fkadaster%2Fkg%2Fgraphs%2Fbrt-gebouw" -O $DATA_DIR/kadaster.nt.gz
+    extract_and_sample dbpedia
+fi
+if [ ! -f $DATA_DIR/energie.nt ]; then 
+    wget "https://triplydb.com/rvo/energielabels/download.nt" -O $DATA_DIR/energie.nt.gz 
+    extract_and_sample energie
+fi
+
+if [ ! -f $DATA_DIR/all.nt ]; then 
+    cat $DATA_DIR/kadaster.nt $DATA_DIR/dbpedia.nt $DATA_DIR/energie.nt > $DATA_DIR/all.nt
+fi
+
+# sorted rdf files for static subtraction
+for key in all kadaster dbpedia energie ; do 
+    if [ ! -f $DATA_DIR/$key.sorted.nt ]; then 
+        sort $DATA_DIR/$key.nt --output=$DATA_DIR/$key.sorted.nt
+    fi
+done
+
+# generate files for e7: a main file which excludes a systematic subset, 
+# the systematic subset while will be added and is not present in the main file,
+# and a systematic subset which will be removed from the mail file. 
+for dataset in $DATASETS ; do 
+    for modulo in $DIFF_MODULOS; do 
+        if [ ! -f $DATA_DIR/$dataset.primary.$modulo.nt ]; then 
+            cat $DATA_DIR/$dataset.nt | awk '(NR%'$modulo'!=0)' > $DATA_DIR/$dataset.primary.$modulo.nt
+        fi
+        if [ ! -f $DATA_DIR/$dataset.primary.$modulo.dynamic.hdt ]; then 
+            $HDT_DIR/rdf2hdt -i -c $CONFIGS_DIR/dynamic.hdtcfg $DATA_DIR/$dataset.primary.$modulo.nt $DATA_DIR/$dataset.primary.$modulo.dynamic.hdt
+        fi
+        if [ ! -f $DATA_DIR/$dataset.add.$modulo.nt ]; then 
+            cat $DATA_DIR/$dataset.nt | awk '(NR%'$modulo'==0)' > $DATA_DIR/$dataset.add.$modulo.nt
+        fi
+        if [ ! -f $DATA_DIR/$dataset.remove.$modulo.nt ]; then 
+            cat $DATA_DIR/$dataset.nt | awk '(NR%'$modulo'==1)' > $DATA_DIR/$dataset.remove.$modulo.nt
+        fi
+    done
+done
+
+# generate main HDT files, for e2, e3, e4, e5
+for variant in dynamic static ; do 
+    for primary in $DATASETS ; do
+        if [ ! -f $DATA_DIR/$primary.$variant.hdt ]; then 
+            $HDT_DIR/rdf2hdt -i -c $CONFIGS_DIR/$variant.hdtcfg $DATA_DIR/$primary.nt $DATA_DIR/$primary.$variant.hdt
+        fi
+    done
+done
+
+# generate merge files for e6-hdt-subtraction
+if [ ! -f $DATA_DIR/dbpedia.kadaster.dynamic.hdt ]; then 
+    $HDT_DIR/hdtAdd $DATA_DIR/dbpedia.dynamic.hdt $DATA_DIR/kadaster.dynamic.hdt $DATA_DIR/dbpedia.kadaster.dynamic.hdt
+fi
+if [ ! -f $DATA_DIR/all.dynamic.hdt ]; then 
+    $HDT_DIR/hdtAdd $DATA_DIR/dbpedia.kadaster.dynamic.hdt $DATA_DIR/energie.dynamic.hdt $DATA_DIR/all.dynamic.hdt
+fi
+if [ ! -f $DATA_DIR/dbpedia.kadaster.static.hdt ]; then 
+    $HDT_DIR/hdtCat -i $DATA_DIR/dbpedia.static.hdt $DATA_DIR/kadaster.static.hdt $DATA_DIR/dbpedia.kadaster.static.hdt
+fi
+if [ ! -f $DATA_DIR/all.static.hdt ]; then 
+    $HDT_DIR/hdtCat -i $DATA_DIR/dbpedia.kadaster.static.hdt $DATA_DIR/energie.static.hdt $DATA_DIR/all.static.hdt
+fi
